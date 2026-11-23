@@ -323,16 +323,16 @@ private fun BeaconPanel(live: LiveState) {
 private fun RecentDevices(live: LiveState) {
     if (live.recent.isEmpty()) return
     val showMac by ScanRepository.showRealMac.collectAsStateWithLifecycle()
-    Section(if (showMac) "Recently seen (real MAC addresses)" else "Recently seen (hashed IDs, no real MACs)") {
+    Section(if (showMac) "Recently seen (real MACs and names)" else "Recently seen (hashed IDs, no real MACs)") {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Show real MAC addresses")
+                Text("Show real MAC addresses and names")
                 Text(
-                    "Display only. CSV files always store hashes.",
+                    "Display only. CSV files always store hashes, never MACs or names.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -345,6 +345,9 @@ private fun RecentDevices(live: LiveState) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
+                    if (showMac && d.name.isNotEmpty()) {
+                        Text(d.name, fontWeight = FontWeight.SemiBold)
+                    }
                     Text(if (showMac && d.mac.isNotEmpty()) d.mac else d.hashId, fontFamily = FontFamily.Monospace)
                     Text(
                         when {

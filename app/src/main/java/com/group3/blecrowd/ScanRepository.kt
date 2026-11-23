@@ -9,7 +9,8 @@ enum class RunStatus { IDLE, COUNTDOWN, RUNNING, LIVE }
 
 data class BeaconLive(val id: Int, val rssi: Int, val ageMs: Long, val n: Int, val firstMs: Long)
 
-data class DeviceLive(val hashId: String, val rssi: Int, val ageMs: Long, val beaconId: Int?, val mac: String = "", val manufacturer: String = "")
+data class DeviceLive(val hashId: String, val rssi: Int, val ageMs: Long, val beaconId: Int?, val mac: String = "", val manufacturer: String = "", val name: String = "",
+)
 
 data class LiveState(
     val status: RunStatus = RunStatus.IDLE,
@@ -39,7 +40,7 @@ object ScanRepository {
     val groundTruth = MutableStateFlow("3")
     val notes = MutableStateFlow("")
 
-    /** UI-only toggle: show real MAC addresses in "Recently seen". CSV files always contain hashes only. */
+    /** UI-only toggle: show real MAC addresses + device names in "Recently seen". CSV files always contain hashes only. */
     val showRealMac = MutableStateFlow(false)
 
     fun update(transform: (LiveState) -> LiveState) = _state.update(transform)

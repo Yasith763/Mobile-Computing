@@ -13,6 +13,8 @@ data class DeviceInfo(
     var packets: Int = 1,
     val mac: String = "",        // in memory only, for the optional on-screen display; never logged to CSV
     var manufacturer: String = "",
+    var name: String = "",                // advertised / cached device name; in memory only, never logged to CSV
+    var nameLookupDone: Boolean = false,
 )
 
 /** Running statistics for one ground-truth beacon (keyed by beaconId, not hash, so MAC rotation is harmless). */
@@ -54,18 +56,37 @@ class DeviceTracker {
         runStart = now
     }
 
-    fun onSighting(hashId: String, rssi: Int, beaconId: Int?, now: Long, mac: String = "", manufacturer: String = "") {
+    fun onSighting(
+        hashId: String, rssi: Int, beaconId: Int?, now: Long,
+        mac: String = "", manufacturer: String = "", name: String = "",
+    ) {
         totalPackets++
         devices.compute(hashId) { _, d ->
             d?.apply {
                 lastSeen = now; lastRssi = rssi; packets++
-                // Scan-response packets often carry no manufacturer data; keep the last known label.
+                // Not every packet carries manufacturer data / a name; keep the last known value.
                 if (manufacturer.isNotEmpty()) this.manufacturer = manufacturer
-            } ?: DeviceInfo(hashId, now, now, rssi, beaconId, mac = mac, manufacturer = manufacturer)
+                if (name.isNotEmpty()) this.name = name
+            } ?: DeviceInfo(hashId, now, now, rssi, beaconId, mac = mac, manufacturer = manufacturer, name = name)
         }
         if (beaconId != null) {
             beacons.getOrPut(beaconId) { BeaconStats() }.add(rssi, now - runStart, now)
         }
+    }
+
+    /**
+     * Returns true exactly once per device that still has no name, so the (slower) system name-cache
+     * lookup happens once per device instead of on every packet.
+     */
+    fun claimNameLookup(hashId: String): Boolean {
+        val d = devices[hashId] ?: return false
+        if (d.name.isNotEmpty() || d.nameLookupDone) return false
+        d.nameLookupDone = true
+        return true
+    }
+
+    fun setName(hashId: String, name: String) {
+        devices[hashId]?.name = name
     }
 
     fun totalUnique(): Int = devices.size
