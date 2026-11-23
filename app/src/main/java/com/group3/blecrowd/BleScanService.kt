@@ -580,8 +580,9 @@ class BleScanService : Service() {
     /** Worker thread. */
     private fun onPacket(now: Long, mac: String, rssi: Int, beaconId: Int?, txPower: Int) {
         if (!accepting) return
-        val hashId = HashUtil.hash(mac) // the real MAC goes no further than this line
-        tracker.onSighting(hashId, rssi, beaconId, now)
+        val hashId = HashUtil.hash(mac)
+        // The real MAC is kept in memory only, for the optional on-screen display. The CSV gets the hash only.
+        tracker.onSighting(hashId, rssi, beaconId, now, mac)
         logger?.let {
             try {
                 it.logEvent(now, now - tracker.runStart, hashId, rssi, beaconId, txPower)
@@ -608,7 +609,7 @@ class BleScanService : Service() {
         val beacons = tracker.beaconStats().mapValues { (id, b) ->
             BeaconLive(id, b.lastRssi, now - b.lastSeen, b.n, b.firstElapsedMs)
         }
-        val recent = tracker.recentDevices(8).map { DeviceLive(it.hashId, it.lastRssi, now - it.lastSeen, it.beaconId) }
+        val recent = tracker.recentDevices(8).map { DeviceLive(it.hashId, it.lastRssi, now - it.lastSeen, it.beaconId, it.mac) }
         val wc = tracker.windowCount(now)
         val tu = tracker.totalUnique()
         val tp = tracker.totalPackets

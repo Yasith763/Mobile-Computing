@@ -11,6 +11,7 @@ data class DeviceInfo(
     var lastRssi: Int,
     val beaconId: Int?,          // 1, 2, 3 for our beacons; null for unknown devices
     var packets: Int = 1,
+    val mac: String = "",        // in memory only, for the optional on-screen display; never logged to CSV
 )
 
 /** Running statistics for one ground-truth beacon (keyed by beaconId, not hash, so MAC rotation is harmless). */
@@ -52,11 +53,11 @@ class DeviceTracker {
         runStart = now
     }
 
-    fun onSighting(hashId: String, rssi: Int, beaconId: Int?, now: Long) {
+    fun onSighting(hashId: String, rssi: Int, beaconId: Int?, now: Long, mac: String = "") {
         totalPackets++
         devices.compute(hashId) { _, d ->
             d?.apply { lastSeen = now; lastRssi = rssi; packets++ }
-                ?: DeviceInfo(hashId, now, now, rssi, beaconId)
+                ?: DeviceInfo(hashId, now, now, rssi, beaconId, mac = mac)
         }
         if (beaconId != null) {
             beacons.getOrPut(beaconId) { BeaconStats() }.add(rssi, now - runStart, now)

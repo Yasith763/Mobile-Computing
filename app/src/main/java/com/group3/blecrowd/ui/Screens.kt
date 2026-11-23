@@ -322,10 +322,25 @@ private fun BeaconPanel(live: LiveState) {
 @Composable
 private fun RecentDevices(live: LiveState) {
     if (live.recent.isEmpty()) return
-    Section("Recently seen (hashed IDs, no real MACs)") {
+    val showMac by ScanRepository.showRealMac.collectAsStateWithLifecycle()
+    Section(if (showMac) "Recently seen (real MAC addresses)" else "Recently seen (hashed IDs, no real MACs)") {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Show real MAC addresses")
+                Text(
+                    "Display only. CSV files always store hashes.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Switch(checked = showMac, onCheckedChange = { ScanRepository.showRealMac.value = it })
+        }
         live.recent.forEach { d ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(d.hashId, fontFamily = FontFamily.Monospace)
+                Text(if (showMac && d.mac.isNotEmpty()) d.mac else d.hashId, fontFamily = FontFamily.Monospace)
                 Text(d.beaconId?.let { "Beacon $it" } ?: "", color = Green)
                 Text("${d.rssi} dBm", fontFamily = FontFamily.Monospace)
             }
