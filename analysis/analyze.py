@@ -57,7 +57,7 @@ def load(data_dir):
         ev = pd.concat((pd.read_csv(f) for f in files), ignore_index=True)
     else:
         ev = pd.DataFrame(columns=["timestamp_ms", "elapsed_ms", "run_id", "mode", "placement",
-                                   "hash_id", "rssi", "beacon_id", "tx_power"])
+                                   "hash_id", "rssi", "beacon_id", "tx_power", "manufacturer"])
     ev["beacon_id"] = pd.to_numeric(ev["beacon_id"], errors="coerce")
     return s, ev
 

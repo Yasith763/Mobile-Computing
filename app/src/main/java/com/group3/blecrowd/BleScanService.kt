@@ -574,18 +574,19 @@ class BleScanService : Service() {
         val rssi = r.rssi
         val beaconId = parseBeaconId(r)
         val tx = r.txPower
-        worker.post { onPacket(now, mac, rssi, beaconId, tx) }
+        val maker = Manufacturers.label(r.scanRecord, beaconId)
+        worker.post { onPacket(now, mac, rssi, beaconId, tx, maker) }
     }
 
     /** Worker thread. */
-    private fun onPacket(now: Long, mac: String, rssi: Int, beaconId: Int?, txPower: Int) {
+    private fun onPacket(now: Long, mac: String, rssi: Int, beaconId: Int?, txPower: Int, maker: String) {
         if (!accepting) return
         val hashId = HashUtil.hash(mac)
         // The real MAC is kept in memory only, for the optional on-screen display. The CSV gets the hash only.
-        tracker.onSighting(hashId, rssi, beaconId, now, mac)
+        tracker.onSighting(hashId, rssi, beaconId, now, mac, maker)
         logger?.let {
             try {
-                it.logEvent(now, now - tracker.runStart, hashId, rssi, beaconId, txPower)
+                it.logEvent(now, now - tracker.runStart, hashId, rssi, beaconId, txPower, maker)
             } catch (e: Exception) {
                 Log.e(Constants.LOG_TAG, "CSV write failed", e)
                 logger = null
@@ -609,7 +610,7 @@ class BleScanService : Service() {
         val beacons = tracker.beaconStats().mapValues { (id, b) ->
             BeaconLive(id, b.lastRssi, now - b.lastSeen, b.n, b.firstElapsedMs)
         }
-        val recent = tracker.recentDevices(8).map { DeviceLive(it.hashId, it.lastRssi, now - it.lastSeen, it.beaconId, it.mac) }
+        val recent = tracker.recentDevices(8).map { DeviceLive(it.hashId, it.lastRssi, now - it.lastSeen, it.beaconId, it.mac, it.manufacturer) }
         val wc = tracker.windowCount(now)
         val tu = tracker.totalUnique()
         val tp = tracker.totalPackets

@@ -12,6 +12,7 @@ data class DeviceInfo(
     val beaconId: Int?,          // 1, 2, 3 for our beacons; null for unknown devices
     var packets: Int = 1,
     val mac: String = "",        // in memory only, for the optional on-screen display; never logged to CSV
+    var manufacturer: String = "",
 )
 
 /** Running statistics for one ground-truth beacon (keyed by beaconId, not hash, so MAC rotation is harmless). */
@@ -53,11 +54,14 @@ class DeviceTracker {
         runStart = now
     }
 
-    fun onSighting(hashId: String, rssi: Int, beaconId: Int?, now: Long, mac: String = "") {
+    fun onSighting(hashId: String, rssi: Int, beaconId: Int?, now: Long, mac: String = "", manufacturer: String = "") {
         totalPackets++
         devices.compute(hashId) { _, d ->
-            d?.apply { lastSeen = now; lastRssi = rssi; packets++ }
-                ?: DeviceInfo(hashId, now, now, rssi, beaconId, mac = mac)
+            d?.apply {
+                lastSeen = now; lastRssi = rssi; packets++
+                // Scan-response packets often carry no manufacturer data; keep the last known label.
+                if (manufacturer.isNotEmpty()) this.manufacturer = manufacturer
+            } ?: DeviceInfo(hashId, now, now, rssi, beaconId, mac = mac, manufacturer = manufacturer)
         }
         if (beaconId != null) {
             beacons.getOrPut(beaconId) { BeaconStats() }.add(rssi, now - runStart, now)

@@ -339,9 +339,27 @@ private fun RecentDevices(live: LiveState) {
             Switch(checked = showMac, onCheckedChange = { ScanRepository.showRealMac.value = it })
         }
         live.recent.forEach { d ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(if (showMac && d.mac.isNotEmpty()) d.mac else d.hashId, fontFamily = FontFamily.Monospace)
-                Text(d.beaconId?.let { "Beacon $it" } ?: "", color = Green)
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(if (showMac && d.mac.isNotEmpty()) d.mac else d.hashId, fontFamily = FontFamily.Monospace)
+                    Text(
+                        when {
+                            d.beaconId != null -> "Group 3 Beacon ${d.beaconId}"
+                            d.manufacturer.isNotEmpty() -> d.manufacturer
+                            else -> "Unknown manufacturer"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when {
+                            d.beaconId != null -> Green
+                            d.manufacturer.isNotEmpty() -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
                 Text("${d.rssi} dBm", fontFamily = FontFamily.Monospace)
             }
         }
