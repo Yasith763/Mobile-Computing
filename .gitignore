@@ -1,0 +1,23 @@
+# Android / Gradle
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python
+__pycache__/
+.venv/
+
+# Generated analysis output (data is committed deliberately; charts are regenerated)
+analysis/charts/*.png
+analysis/charts/*.csv
+
+# Analysis scratch
+analysis/.venv/
+analysis/sample_data/
+analysis/sample_charts/
