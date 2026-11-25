@@ -322,11 +322,47 @@ private fun BeaconPanel(live: LiveState) {
 @Composable
 private fun RecentDevices(live: LiveState) {
     if (live.recent.isEmpty()) return
-    Section("Recently seen (hashed IDs, no real MACs)") {
+    val showMac by ScanRepository.showRealMac.collectAsStateWithLifecycle()
+    Section(if (showMac) "Recently seen (real MACs and names)" else "Recently seen (hashed IDs, no real MACs)") {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Show real MAC addresses and names")
+                Text(
+                    "Display only. CSV files always store hashes, never MACs or names.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Switch(checked = showMac, onCheckedChange = { ScanRepository.showRealMac.value = it })
+        }
         live.recent.forEach { d ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(d.hashId, fontFamily = FontFamily.Monospace)
-                Text(d.beaconId?.let { "Beacon $it" } ?: "", color = Green)
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    if (showMac && d.name.isNotEmpty()) {
+                        Text(d.name, fontWeight = FontWeight.SemiBold)
+                    }
+                    Text(if (showMac && d.mac.isNotEmpty()) d.mac else d.hashId, fontFamily = FontFamily.Monospace)
+                    Text(
+                        when {
+                            d.beaconId != null -> "Group 3 Beacon ${d.beaconId}"
+                            d.manufacturer.isNotEmpty() -> d.manufacturer
+                            else -> "Unknown manufacturer"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when {
+                            d.beaconId != null -> Green
+                            d.manufacturer.isNotEmpty() -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
                 Text("${d.rssi} dBm", fontFamily = FontFamily.Monospace)
             }
         }

@@ -4,7 +4,8 @@ import java.security.MessageDigest
 import java.util.UUID
 
 /**
- * Privacy: real MAC addresses are never stored or displayed.
+ * Privacy: real MAC addresses are never written to disk (CSV holds hashes only).
+ * They can optionally be shown on screen via the "Show real MAC addresses" toggle (memory only).
  * We keep SHA-256(sessionSalt + MAC), truncated to 12 hex chars (48 bits).
  * The salt is random per app process, so IDs can't be linked across sessions,
  * but they stay stable within a session so counting still works.

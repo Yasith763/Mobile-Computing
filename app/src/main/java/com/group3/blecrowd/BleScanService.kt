@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -574,17 +575,29 @@ class BleScanService : Service() {
         val rssi = r.rssi
         val beaconId = parseBeaconId(r)
         val tx = r.txPower
-        worker.post { onPacket(now, mac, rssi, beaconId, tx) }
+        val maker = Manufacturers.label(r.scanRecord, beaconId)
+        // "Complete/Shortened Local Name" field of the advertisement (or scan response), if the device sends one.
+        val advName = r.scanRecord?.deviceName?.trim().orEmpty()
+        val device = r.device
+        worker.post { onPacket(now, mac, rssi, beaconId, tx, maker, advName, device) }
     }
 
     /** Worker thread. */
-    private fun onPacket(now: Long, mac: String, rssi: Int, beaconId: Int?, txPower: Int) {
+    private fun onPacket(
+        now: Long, mac: String, rssi: Int, beaconId: Int?, txPower: Int, maker: String,
+        advName: String, device: BluetoothDevice,
+    ) {
         if (!accepting) return
-        val hashId = HashUtil.hash(mac) // the real MAC goes no further than this line
-        tracker.onSighting(hashId, rssi, beaconId, now)
+        val hashId = HashUtil.hash(mac)
+        // The real MAC and name are kept in memory only, for the optional on-screen display.
+        // The CSV gets the hash only.
+        tracker.onSighting(hashId, rssi, beaconId, now, mac, maker, advName)
+        if (tracker.claimNameLookup(hashId)) {
+            cachedName(device)?.let { tracker.setName(hashId, it) }
+        }
         logger?.let {
             try {
-                it.logEvent(now, now - tracker.runStart, hashId, rssi, beaconId, txPower)
+                it.logEvent(now, now - tracker.runStart, hashId, rssi, beaconId, txPower, maker)
             } catch (e: Exception) {
                 Log.e(Constants.LOG_TAG, "CSV write failed", e)
                 logger = null
@@ -592,6 +605,17 @@ class BleScanService : Service() {
             }
         }
         pushUi(now, force = false)
+    }
+
+    /**
+     * Name from Android's Bluetooth cache (devices this phone has paired with or discovered before).
+     * Needs BLUETOOTH_CONNECT on Android 12+; returns null if not granted or unknown.
+     */
+    @SuppressLint("MissingPermission")
+    private fun cachedName(device: BluetoothDevice): String? = try {
+        device.name?.trim()?.takeIf { it.isNotEmpty() }
+    } catch (e: SecurityException) {
+        null
     }
 
     private fun parseBeaconId(r: ScanResult): Int? {
@@ -608,7 +632,7 @@ class BleScanService : Service() {
         val beacons = tracker.beaconStats().mapValues { (id, b) ->
             BeaconLive(id, b.lastRssi, now - b.lastSeen, b.n, b.firstElapsedMs)
         }
-        val recent = tracker.recentDevices(8).map { DeviceLive(it.hashId, it.lastRssi, now - it.lastSeen, it.beaconId) }
+        val recent = tracker.recentDevices(8).map { DeviceLive(it.hashId, it.lastRssi, now - it.lastSeen, it.beaconId, it.mac, it.manufacturer, it.name) }
         val wc = tracker.windowCount(now)
         val tu = tracker.totalUnique()
         val tp = tracker.totalPackets

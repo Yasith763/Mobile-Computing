@@ -24,9 +24,13 @@ class CsvLogger(
         writer.newLine()
     }
 
-    fun logEvent(timestampMs: Long, elapsedMs: Long, hashId: String, rssi: Int, beaconId: Int?, txPower: Int) {
+    fun logEvent(
+        timestampMs: Long, elapsedMs: Long, hashId: String, rssi: Int, beaconId: Int?, txPower: Int,
+        manufacturer: String = "",
+    ) {
         writer.write(
-            "$timestampMs,$elapsedMs,$runId,${mode.name},${placement.name},$hashId,$rssi,${beaconId ?: ""},$txPower"
+            "$timestampMs,$elapsedMs,$runId,${mode.name},${placement.name},$hashId,$rssi,${beaconId ?: ""},$txPower," +
+                escape(manufacturer)
         )
         writer.newLine()
         if (timestampMs - lastFlush >= Constants.FLUSH_INTERVAL_MS) {
@@ -41,7 +45,7 @@ class CsvLogger(
     }
 
     companion object {
-        const val EVENTS_HEADER = "timestamp_ms,elapsed_ms,run_id,mode,placement,hash_id,rssi,beacon_id,tx_power"
+        const val EVENTS_HEADER = "timestamp_ms,elapsed_ms,run_id,mode,placement,hash_id,rssi,beacon_id,tx_power,manufacturer"
 
         val SUMMARY_COLUMNS = listOf(
             "run_id", "phase", "start_time", "mode", "placement", "rep", "duration_s", "ground_truth",
