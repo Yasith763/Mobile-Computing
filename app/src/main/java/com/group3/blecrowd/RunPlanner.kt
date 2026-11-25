@@ -68,6 +68,34 @@ object RunPlanner {
         return "$base$c"
     }
 
+    /**
+     * Restarts a phase from run 1 WITHOUT deleting anything: the phase's rows and events files are moved to
+     * runs/archive_<phase>_<timestamp>/ (rows go into that folder's own summary.csv). Other phases are untouched.
+     * Returns the number of runs archived.
+     */
+    fun archivePhase(context: Context, phase: Phase): Int {
+        val dir = runsDir(context)
+        val summary = File(dir, Constants.SUMMARY_FILE)
+        if (!summary.exists()) return 0
+        val lines = summary.readLines()
+        if (lines.isEmpty()) return 0
+        val header = lines.first()
+        val body = lines.drop(1).filter { it.isNotBlank() }
+        fun phaseOf(line: String) = line.split(",", limit = 3).getOrNull(1)
+        val (mine, keep) = body.partition { phaseOf(it) == phase.name }
+        if (mine.isEmpty()) return 0
+
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+        val archive = File(dir, "archive_${phase.name.lowercase()}_$stamp")
+        if (!archive.mkdirs()) return 0
+        File(archive, Constants.SUMMARY_FILE).writeText((listOf(header) + mine).joinToString("\n") + "\n")
+        mine.mapNotNull { it.split(",", limit = 2).firstOrNull() }.forEach { id ->
+            File(dir, "events_$id.csv").takeIf { it.exists() }?.renameTo(File(archive, "events_$id.csv"))
+        }
+        summary.writeText((listOf(header) + keep).joinToString("\n") + "\n")
+        return mine.size
+    }
+
     fun csvFiles(context: Context): List<File> =
         runsDir(context).listFiles { f -> f.isFile && f.name.endsWith(".csv") }?.sortedBy { it.name } ?: emptyList()
 }

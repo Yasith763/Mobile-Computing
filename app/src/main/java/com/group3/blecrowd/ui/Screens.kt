@@ -249,7 +249,21 @@ fun ScannerScreen(ready: Boolean) {
     LiveSection(live)
     BeaconPanel(live)
     RecentDevices(live)
-    DataSection(enabled = !busy, savedCount = savedRuns.size)
+    DataSection(
+        enabled = !busy && !isLive,
+        savedCount = savedRuns.size,
+        controlledCount = savedRuns.count { it.second == Phase.CONTROLLED.name },
+        onResetControlled = {
+            val n = RunPlanner.archivePhase(ctx, Phase.CONTROLLED)
+            savedRuns = RunPlanner.savedRuns(ctx)
+            runId = RunPlanner.nextRunId(ctx, phase)
+            if (phase == Phase.CONTROLLED && followPlan) {
+                val s = RunPlanner.nextControlled(ctx)
+                mode = s.mode; placement = s.placement; rep = s.rep.toString()
+            }
+            Toast.makeText(ctx, "Archived $n controlled runs. Next: ${runId}", Toast.LENGTH_LONG).show()
+        },
+    )
 
     if (showStopConfirm) {
         AlertDialog(
@@ -370,8 +384,11 @@ private fun RecentDevices(live: LiveState) {
 }
 
 @Composable
-private fun DataSection(enabled: Boolean, savedCount: Int) {
+private fun DataSection(
+    enabled: Boolean, savedCount: Int, controlledCount: Int, onResetControlled: () -> Unit,
+) {
     val ctx = LocalContext.current
+    var confirmReset by remember { mutableStateOf(false) }
     Section("Data (D3)") {
         Text("Runs in summary.csv: $savedCount")
         Text(
@@ -383,6 +400,26 @@ private fun DataSection(enabled: Boolean, savedCount: Int) {
             style = MaterialTheme.typography.bodySmall,
         )
         OutlinedButton(onClick = { shareRuns(ctx) }, enabled = enabled) { Text("SHARE / EXPORT CSVs") }
+        OutlinedButton(
+            onClick = { confirmReset = true },
+            enabled = enabled && controlledCount > 0,
+        ) { Text("RESET CONTROLLED RUNS ($controlledCount)") }
+    }
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("Reset controlled testing?") },
+            text = {
+                Text(
+                    "Runs restart from R01. The $controlledCount controlled runs are MOVED to an archive_controlled_… " +
+                        "folder (not deleted), so analyze.py will no longer see them. Field and battery runs are kept."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmReset = false; onResetControlled() }) { Text("Reset") }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },
+        )
     }
 }
 

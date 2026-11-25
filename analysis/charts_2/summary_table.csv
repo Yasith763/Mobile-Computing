@@ -1,0 +1,5 @@
+mode,placement,runs,beacons_mean,beacons_std,unique_mean,unique_std,window_mean,packets_mean,b1_rssi_mean,b1_rssi_sd,b1_detect_rate,b2_rssi_mean,b2_rssi_sd,b2_detect_rate,b3_rssi_mean,b3_rssi_sd,b3_detect_rate
+LOW_LATENCY,BAG,5,3.0,0.0,11.6,1.34,11.6,1914.2,-85.4,3.48,1.0,-93.8,2.18,1.0,-94.9,1.84,1.0
+LOW_LATENCY,HAND,5,3.0,0.0,12.0,1.73,11.2,2135.8,-84.8,2.43,1.0,-93.7,2.58,1.0,-92.6,1.9,1.0
+LOW_POWER,BAG,5,3.0,0.0,11.8,0.84,11.0,379.2,-84.9,3.14,1.0,-94.3,1.38,1.0,-95.0,1.58,1.0
+LOW_POWER,HAND,5,2.6,0.55,11.4,0.89,10.8,408.2,-83.3,2.6,1.0,-92.9,2.87,0.6,-92.9,1.84,1.0
