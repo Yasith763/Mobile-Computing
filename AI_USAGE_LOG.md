@@ -21,7 +21,6 @@ It lists every AI tool we used, what we used it for, which files it produced, an
 
 | Date | Purpose (what we asked) | Output | How we used it |
 |---|---|---|---|
-| 2026-11-19 | Turn our accepted proposal into a step-by-step 3-day plan with technical details | `PROJECT_PLAN.md` | Followed as our work plan. Its suggestion to use 5 reps instead of 3 (so that the 2×2 design gives the 20 runs promised in D3) was adopted. |
 | 2026-11-19 | Generate the first version of the Android app and analysis scripts. | All files under `app/`, `analysis/analyze.py`, `analysis/generate_sample_data.py`, `README.md` (commit `f6775a4`) | Built, installed on our 4 devices and tested. See §4 for our own changes. |
 | 2026-11-20 | Fix: `git` not found in the MSYS2 UCRT64 terminal | Explanation (Git for Windows not on that shell's PATH) | Used Git Bash / PATH fix. No code. |
 | 2026-11-20 | Step-by-step guide to install Android Studio, build and run the app | Instructions in chat | Followed to install Android Studio and build the app. |
@@ -53,18 +52,31 @@ It lists every AI tool we used, what we used it for, which files it produced, an
 | `.../ui/Screens.kt` | Scanner and Beacon screens (Jetpack Compose) | Yes | |
 | `app/src/main/AndroidManifest.xml`, Gradle files, `res/` | Permissions, foreground service, build setup | Yes | |
 | `analysis/analyze.py` | Tables, charts, Welch t-test | No | Uses pandas, NumPy, SciPy, Matplotlib |
-| `analysis/generate_sample_data.py` | Fake data for testing only | No | Never used as real results |
+| `analysis/generate_sample_data.py` | Fake data for testing only | No |  |
 | `PROJECT_PLAN.md`, `README.md`, `AI_USAGE_LOG.md` | Documentation | No | |
 
 ---
 
-## 4. Our own changes to AI output 
+## 4. Our own changes to AI output
 
-List what you changed yourselves (bug fixes, settings, UI changes, removed features), so that you can explain them in the interview.
+### 4.1 Code we changed or removed ourselves
 
 | File | What we changed | Why |
 |---|---|---|
-| `ClassicScanner.kt`, `ui/Screens.kt`, `BleScanService.kt` | Removed the Classic Bluetooth scan feature | Not needed for the research question; it interferes with BLE scanning |
+| `ClassicScanner.kt` (deleted), `ui/Screens.kt`, `BleScanService.kt` | Removed the whole Classic Bluetooth scan feature (the `ClassicScanner` class, the "Classic Bluetooth scan" card in the UI and the calls that cancelled discovery before a run) before committing | Classic discovery (`BluetoothAdapter.startDiscovery()`) uses the radio heavily and lowers BLE scan performance, so it could bias our Low Power vs. Low Latency results. It also answers a different question (device names), not our research question. |
+
+### 4.2 Decisions and requirements that came from us (AI only implemented them)
+
+The AI wrote the code for these features, but the idea, the requirement or the design choice was ours. We tested each one on our devices.
+
+| Feature / decision | Files | Our requirement or decision | Why |
+|---|---|---|---|
+| Show real MAC addresses on screen | `DeviceTracker.kt`, `ScanRepository.kt`, `BleScanService.kt`, `ui/Screens.kt` | We asked for a switch to show real MACs in the demo. We required that the **CSV keep storing hashes only**, and the switch is **off by default**. | To show the effect of MAC randomisation in the demo without breaking the privacy rule of the brief ("hash or discard device identifiers"). |
+| Manufacturer label + `manufacturer` CSV column | `Manufacturers.kt`, `CsvLogger.kt`, `BleScanService.kt` | We asked for this after we saw one iPhone 7 Plus increase the count by two. | To explain over-counting (one person, several advertising addresses) and to describe the devices in the canteen without storing identities. |
+| Device names (display only) | `BleScanService.kt`, `DeviceTracker.kt`, `ui/Screens.kt` | We asked for names; names are **never saved** and are hidden unless the switch is on. | Names can identify people (e.g. "Yasith's iPhone"), so they must not be in the data package. |
+| 5 repetitions instead of 3 | `RunPlanner.kt`, experiment protocol | We chose 5 reps per condition (2 × 2 × 5 = 20 runs). | The proposal promises at least 20 controlled runs (D3); 3 reps would give only 12. |
+| Beacons at 2 m, 4 m and 6 m | Experiment setup | We chose different distances for the three beacons. | So that the backpack condition could show whether the farthest beacon drops out. |
+| Report layout | `report/make_report.py`, `report/make_figures.py` | We asked for simpler diagrams, tested a one-column layout, returned to two columns (required by the brief) and reported the misaligned tables. | Readability and following the brief's format. |
 
 ---
 
@@ -74,7 +86,6 @@ List what you changed yourselves (bug fixes, settings, UI changes, removed featu
 - **On-device tests:** installed on the Galaxy Tab S9 FE (scanner) and 3 × Galaxy Tab S6 Lite (beacons). We checked that all 3 beacons are detected (B1 ✔ B2 ✔ B3 ✔), that the count reacts to the Low Power / Low Latency switch, and that only hashes appear in the CSV files. 
 - **Data check:** opened `summary.csv` and `events_*.csv` in Excel and compared a few values with what the app showed during the run. 
 - **Analysis check:** ran `analyze.py` on the fake sample data first, then on our real data, and checked the means by hand for one condition. 
-- **Understanding:** both members read through the main files (`BleScanService.kt`, `DeviceTracker.kt`, `HashUtil.kt`, `analyze.py`) so that we can explain them in the interview.
 
 ---
 
